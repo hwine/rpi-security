@@ -40,6 +40,8 @@ class RpisSecurity(object):
         'telegram_users_number': '1',
         'arp_ping_count': '7',
         'motion_command': '',
+        'ignore_telegram_errors': 'False',
+        'ignore_monitoring_errors': 'False',
     }
 
     def __init__(self, config_file, data_file):
@@ -53,7 +55,10 @@ class RpisSecurity(object):
         try:
             self.bot = TelegramBot(token=self.telegram_bot_token)
         except Exception as e:
-            raise Exception('Failed to connect to Telegram with error: {0}'.format(repr(e)))
+            if self.ignore_telegram_errors:
+                looger.info('Failed to connect to Telegram with error: {0}'.format(repr(e)))
+            else:
+                raise Exception('Failed to connect to Telegram with error: {0}'.format(repr(e)))
 
         logger.debug('Initialised: {0}'.format(vars(self)))
 
@@ -184,9 +189,15 @@ class RpisSecurity(object):
             with open('/sys/class/net/{0}/address'.format(self.network_interface), 'r') as f:
                 self.my_mac_address = f.read().strip()
         except FileNotFoundError:
-            raise Exception('Interface {0} does not exist'.format(self.network_interface))
+            if self.ignore_monitoring_errors:
+                logger.info('Interface {0} does not exist'.format(self.network_interface))
+            else:
+                raise Exception('Interface {0} does not exist'.format(self.network_interface))
         except Exception:
-            raise Exception('Unable to get MAC address for interface {0}'.format(self.network_interface))
+            if self.ignore_monitoring_errors:
+                logger.info('Unable to get MAC address for interface {0}'.format(self.network_interface))
+            else:
+                raise Exception('Unable to get MAC address for interface {0}'.format(self.network_interface))
 
     def _set_network_address(self):
         """
@@ -224,6 +235,7 @@ class RpisSecurity(object):
 
         except Exception as e:
             logger.error('Telegram message failed to send message "{0}" with exception: {1}'.format(message, e))
+            return False
         else:
             logger.info('Telegram message Sent: "{0}"'.format(message))
             return True
