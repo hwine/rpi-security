@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 import time
 
 
@@ -28,9 +29,19 @@ def process_photos(rpis, camera):
                     photo = camera.queue.get()
                     logger.debug('Processing the photo {0}, state is {1}'.format(photo, rpis.state.current))
                     rpis.state.update_triggered(True)
-                    rpis.telegram_send_message('Motioned detected')
+                    rpis.state.update_triggered_at = time.time()
+                    rpis.telegram_send_message('Motion detected')
                     if rpis.telegram_send_file(photo):
                         camera.queue.task_done()
+                    rpis.state.update_state('disarmed')
+                    if rpis.motion_command:
+                        logger.debug('motion_command: {}'.format(rpis.motion_command))
+                        os.system(rpis.motion_command)
+                    time.sleep(60)  # wait a minute before next alert
+                    if rpis.state.current != 'disabled':
+                        rpis.state.update_state('armed')
+                    logger.debug('Stopping photo processing as state is now {0} and clearing queue'.format(rpis.state.current))
+                    camera.clear_queue()
             else:
                 logger.debug('Stopping photo processing as state is now {0} and clearing queue'.format(rpis.state.current))
                 camera.clear_queue()

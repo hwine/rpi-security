@@ -20,7 +20,7 @@ class RpisState(object):
         self.current = 'disarmed'
         self.previous = 'Not running'
         self.last_change = time.time()
-        self.last_packet = time.time()
+        self.last_packet =  0 # time.time()
         self.last_mac = None
         self.triggered = False
 

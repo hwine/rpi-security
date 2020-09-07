@@ -52,6 +52,10 @@ def telegram_bot(rpis, camera):
         if check_chat_id(update):
             rpis.state.update_state('disarmed')
 
+    def arm(update, context):
+        if check_chat_id(update):
+            rpis.state.update_state('armed')
+
     def photo(update, context):
         if check_chat_id(update):
             photo = camera.take_photo()
@@ -78,6 +82,7 @@ def telegram_bot(rpis, camera):
         dp.add_handler(CommandHandler("status", status), group=3)
         dp.add_handler(CommandHandler("disable", disable), group=3)
         dp.add_handler(CommandHandler("enable", enable), group=3)
+        dp.add_handler(CommandHandler("arm", arm), group=3)
         dp.add_handler(CommandHandler("photo", photo), group=3)
         dp.add_handler(CommandHandler("gif", gif), group=3)
         dp.add_handler(CommandHandler("reboot", reboot), group=3)

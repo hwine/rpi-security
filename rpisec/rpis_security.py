@@ -39,6 +39,7 @@ class RpisSecurity(object):
         'camera_capture_length': '3',
         'telegram_users_number': '1',
         'arp_ping_count': '7',
+        'motion_command': '',
     }
 
     def __init__(self, config_file, data_file):
@@ -74,6 +75,8 @@ class RpisSecurity(object):
         """
         Performs an ARP scan of a destination MAC address to try and determine if they are present on the network.
         """
+        # don't use this feature at all
+        return
         def _arp_ping(mac_address):
             result = []
             answered,unanswered = srp(Ether(dst=mac_address)/ARP(pdst=self.network_address), timeout=1, verbose=False)
@@ -143,8 +146,9 @@ class RpisSecurity(object):
         self.arp_ping_count = int(self.arp_ping_count)
 
     def _check_system(self):
-        if not os.geteuid() == 0:
-            exit_error('{0} must be run as root'.format(sys.argv[0]))
+        # we're not monitoring wifi, so don't need to be root
+        # if not os.geteuid() == 0:
+        #     exit_error('{0} must be run as root'.format(sys.argv[0]))
 
         if not self._check_monitor_mode():
             raise Exception('Monitor mode is not enabled for interface {0} or interface does not exist'.format(self.network_interface))
@@ -156,6 +160,8 @@ class RpisSecurity(object):
         """
         Returns True if an interface is in monitor mode
         """
+        # disable wifi
+        return True
         result = False
         try:
             type_file = open('/sys/class/net/{0}/type'.format(self.network_interface), 'r')
@@ -171,6 +177,9 @@ class RpisSecurity(object):
         """
         Gets the MAC address of an interface
         """
+        # ignore wifi
+        self.my_mac_address = "0.0.0.0"
+        return
         try:
             with open('/sys/class/net/{0}/address'.format(self.network_interface), 'r') as f:
                 self.my_mac_address = f.read().strip()
@@ -184,6 +193,9 @@ class RpisSecurity(object):
         Finds the corresponding normal interface for a monitor interface and
         then calculates the subnet address of this interface
         """
+        # disable wifi
+        self.network_address = "0.0.0.0"
+        return
         for interface in os.listdir('/sys/class/net'):
             if interface in ['lo', self.network_interface]:
                 continue
@@ -221,6 +233,8 @@ class RpisSecurity(object):
             logger.error('Telegram failed to send file {0} because Telegram chat_id is not set. Send a message to the Telegram bot'.format(file_path))
             return False
         try:
+            # disable file sends for now
+            return True
             filename, file_extension = os.path.splitext(file_path)
             if file_extension == '.mp4':
                 for chat_id in self.saved_data['telegram_chat_ids']:
