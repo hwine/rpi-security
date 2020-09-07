@@ -42,6 +42,8 @@ class RpisSecurity(object):
         'motion_command': '',
         'ignore_telegram_errors': 'False',
         'ignore_monitoring_errors': 'False',
+        'disable_telegram': 'False',
+        'disable_monitoring': 'False',
     }
 
     def __init__(self, config_file, data_file):
@@ -151,10 +153,11 @@ class RpisSecurity(object):
         self.arp_ping_count = int(self.arp_ping_count)
 
     def _check_system(self):
-        # we're not monitoring wifi, so don't need to be root
-        # if not os.geteuid() == 0:
-        #     exit_error('{0} must be run as root'.format(sys.argv[0]))
+        if self.disable_monitoring:
+            return
 
+        if not os.geteuid() == 0:
+            exit_error('{0} must be run as root'.format(sys.argv[0]))
         if not self._check_monitor_mode():
             raise Exception('Monitor mode is not enabled for interface {0} or interface does not exist'.format(self.network_interface))
 
@@ -165,8 +168,8 @@ class RpisSecurity(object):
         """
         Returns True if an interface is in monitor mode
         """
-        # disable wifi
-        return True
+        if self.disable_monitoring:
+            return False
         result = False
         try:
             type_file = open('/sys/class/net/{0}/type'.format(self.network_interface), 'r')
@@ -204,9 +207,8 @@ class RpisSecurity(object):
         Finds the corresponding normal interface for a monitor interface and
         then calculates the subnet address of this interface
         """
-        # disable wifi
-        self.network_address = "0.0.0.0"
-        return
+        if self.disable_monitoring:
+            return False
         for interface in os.listdir('/sys/class/net'):
             if interface in ['lo', self.network_interface]:
                 continue
@@ -226,6 +228,8 @@ class RpisSecurity(object):
             raise Exception('Unable to get network address for interface {0}'.format(self.network_interface))
 
     def telegram_send_message(self, message):
+        if self.disable_telegram:
+            return True
         if 'telegram_chat_ids' not in self.saved_data or self.saved_data['telegram_chat_ids'] is None:
             logger.error('Telegram failed to send message because Telegram chat_id is not set. Send a message to the Telegram bot')
             return False
@@ -241,6 +245,8 @@ class RpisSecurity(object):
             return True
 
     def telegram_send_file(self, file_path):
+        if self.disable_telegram:
+            return True
         if 'telegram_chat_ids' not in self.saved_data:
             logger.error('Telegram failed to send file {0} because Telegram chat_id is not set. Send a message to the Telegram bot'.format(file_path))
             return False
