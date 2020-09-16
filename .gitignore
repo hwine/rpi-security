@@ -1,3 +1,9 @@
 *.pyc
 __pycache__
 *.egg-info/
+.eggs/
+.tox/
+# development environments
+py??/
+.vscode
+.pytest_cache
